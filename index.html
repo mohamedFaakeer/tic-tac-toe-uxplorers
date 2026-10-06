@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://*.firebaseio.com https://*.googleapis.com; img-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self';">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tic Tac Toe By UXplorers — Phase 1</title>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+const firebaseApp = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Playfair+Display:wght@700&display=swap');
+
+:root {
+  --bg: #0b0c15;
+  --surface: #12132a;
+  --text: #e8e8f0;
+  --accent: #00f0ff;
+  --accent2: #ff00aa;
+  --border: rgba(0,240,255,0.18);
+}
+
+* { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; height: 100vh; background: var(--bg); color: var(--text); overflow: auto; font-family: 'Orbitron', system-ui, sans-serif; }
+body { display: flex; flex-direction: column; align-items: center; padding: 1rem 1rem 2rem; min-height: 100vh; }
+
+h1 { font-size: clamp(1.4rem, 5vw, 2.2rem); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.2em; text-align: center; }
+h1 span { color: var(--accent); text-shadow: 0 0 20px var(--accent); }
+.sub { font-size: 0.75rem; opacity: 0.7; letter-spacing: 0.15em; margin-bottom: 1.5rem; }
+
+.turn-display { font-size: 1rem; margin-bottom: 1rem; letter-spacing: 0.1em; opacity: 0.9; }
+
+/* Grid */
+/* Modern Game Card */
+.game-card { background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 1.5rem 1rem; backdrop-filter: blur(20px) saturate(1.2); box-shadow: 0 25px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06); max-width: 440px; width: 92vw; margin: 0 auto; }
+
+/* Modern buttons */
+.modern-btn { background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 12px 22px; font-family: inherit; font-size: 0.8rem; color: var(--text); cursor: pointer; backdrop-filter: blur(12px); letter-spacing: 0.06em; text-transform: uppercase; transition: all 0.25s ease; box-shadow: 0 4px 18px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1); }
+.modern-btn:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 10px 35px var(--accent), inset 0 1px 0 rgba(255,255,255,0.2); border-color: var(--accent); color: var(--accent); }
+
+/* Modern grid */
+.grid-modern { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 340px; margin: 0 auto; }
+.cell-modern { aspect-ratio: 1; background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border: 2px solid rgba(0,240,255,0.2); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: clamp(2.8rem, 12vw, 4.5rem); font-weight: 700; color: var(--accent); box-shadow: 0 6px 25px rgba(0,240,255,0.08), inset 0 1px 0 rgba(255,255,255,0.06); transition: all 0.2s ease; user-select: none; cursor: pointer; animation: popIn 0.35s ease-out; }
+.cell-modern:hover:not(.taken) { border-color: var(--accent); box-shadow: 0 0 30px rgba(0,240,255,0.25), inset 0 1px 0 rgba(255,255,255,0.12); transform: translateY(-3px); }
+.cell-modern.taken { cursor: default; color: var(--accent2); background: linear-gradient(145deg, rgba(255,0,170,0.08), rgba(255,255,255,0.03)); }
+.cell-modern.win { background: linear-gradient(145deg, rgba(0,240,255,0.15), rgba(255,0,170,0.1)); border-color: var(--accent); box-shadow: 0 0 35px var(--accent), inset 0 1px 0 rgba(255,255,255,0.15); animation: pulse 1s ease infinite alternate; }
+
+@keyframes popIn { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pulse { from { box-shadow: 0 0 15px var(--accent); } to { box-shadow: 0 0 45px var(--accent); } }
+.cell {
+  aspect-ratio: 1; background: var(--surface); border: 2px solid var(--border);
+  border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  font-size: clamp(2.5rem, 10vw, 4rem); font-weight: 700; color: var(--accent);
+  box-shadow: 0 4px 22px rgba(0,240,255,0.06); transition: all 0.15s ease;
+  user-select: none; cursor: pointer;
+}
+.cell-modern:hover:not(.taken) { border-color: var(--accent); box-shadow: 0 0 30px rgba(0,240,255,0.3), inset 0 1px 0 rgba(255,255,255,0.15); transform: translateY(-3px); }
+.cell-modern.taken { cursor: default; color: var(--accent2); background: linear-gradient(145deg, rgba(255,0,170,0.08), rgba(255,255,255,0.03)); }
+.cell-modern.win { background: linear-gradient(145deg, rgba(0,240,255,0.15), rgba(255,0,170,0.1)); border-color: var(--accent); box-shadow: 0 0 35px var(--accent), inset 0 1px 0 rgba(255,255,255,0.15); animation: pulse 1s ease infinite alternate; }
+
+@keyframes pulse { from { box-shadow: 0 0 10px var(--accent); } to { box-shadow: 0 0 35px var(--accent); } }
+
+/* Themes */
+.theme-neon { --bg: #0b0c15; --surface: #12132a; --text: #e8e8f0; --accent: #00f0ff; --accent2: #ff00aa; --border: rgba(0,240,255,0.18); font-family: 'Orbitron', system-ui, sans-serif; }
+.theme-classic { --bg: #f5e6c8; --surface: #eaddb8; --text: #3e2a1d; --accent: #8b6f3b; --accent2: #5a3e1b; --border: rgba(139,111,59,0.25); font-family: 'Playfair Display', Georgia, serif; }
+.theme-cartoon { --bg: #fff0f5; --surface: #ffd6e8; --text: #e84393; --accent: #ffa6d2; --accent2: #e84393; --border: rgba(255,166,210,0.35); font-family: 'Comic Sans MS', 'Playfair Display', cursive, sans-serif; }
+
+.cell { animation: popIn 0.35s ease-out; }
+@keyframes popIn { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.theme-classic .cell { animation: fadeSlide 0.5s ease; border-radius: 6px; }
+.theme-cartoon .cell { animation: bounceIn 0.45s ease; border-radius: 50%; }
+@keyframes bounceIn { 0% { transform: scale(0.2) rotate(-10deg); opacity: 0; } 60% { transform: scale(1.15) rotate(3deg); opacity: 1; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes fadeSlide { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+.reset-btn { margin-top: 1.5rem; padding: 0.75rem 2.2rem; border: 2px solid var(--accent); background: linear-gradient(135deg, rgba(0,240,255,0.1), rgba(255,0,170,0.05)); color: var(--text); font-family: inherit; letter-spacing: 0.14em; text-transform: uppercase; border-radius: 50px; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 0 0 transparent; backdrop-filter: blur(8px); font-weight: 700; }
+.theme-classic .reset-btn, .theme-cartoon .reset-btn { border-color: var(--accent); color: var(--text); }
+.reset-btn:hover { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--bg); box-shadow: 0 0 30px var(--accent), 0 4px 20px rgba(255,0,170,0.3); }
+
+.file-btn { background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 6px 10px; font-family: inherit; font-size: 0.7rem; color: var(--text); cursor: pointer; backdrop-filter: blur(8px); transition: all 0.25s ease; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+.file-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 18px rgba(0,240,255,0.25); border-color: var(--accent); }
+.theme-classic .file-btn { background: linear-gradient(135deg, rgba(139,111,59,0.08), rgba(200,180,140,0.05)); border-color: rgba(139,111,59,0.35); color: var(--text); }
+.theme-cartoon .file-btn { background: linear-gradient(135deg, rgba(255,166,210,0.15), rgba(255,255,255,0.15)); border-color: rgba(255,166,210,0.4); color: var(--text); }
+.rich-btn { background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03)); border: 1.5px solid var(--accent); border-radius: 14px; padding: 10px 18px; font-family: inherit; font-size: 0.8rem; color: var(--text); cursor: pointer; backdrop-filter: blur(10px); transition: all 0.25s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08); letter-spacing: 0.05em; text-transform: uppercase; }
+.rich-btn:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 30px var(--accent), inset 0 1px 0 rgba(255,255,255,0.15); border-color: var(--accent); color: var(--accent); }
+.theme-classic .rich-btn { background: linear-gradient(135deg, rgba(139,111,59,0.1), rgba(200,180,140,0.05)); border-color: var(--accent); color: var(--text); }
+.theme-classic .rich-btn:hover { box-shadow: 0 8px 30px rgba(139,111,59,0.4); border-color: var(--accent); color: var(--accent); }
+.theme-cartoon .rich-btn { background: linear-gradient(135deg, rgba(255,166,210,0.2), rgba(255,255,255,0.15)); border-color: var(--accent); color: var(--text); }
+.theme-cartoon .rich-btn:hover { box-shadow: 0 8px 30px rgba(255,166,210,0.5); border-color: var(--accent); color: var(--accent); }
+@media (max-width: 480px) { .controls { flex-direction: column; gap: 6px; } .rich-btn { font-size: 0.65rem; padding: 6px 10px; border-radius: 10px; } }
+</style>
+</head>
+<body class="theme-neon">
+  <div id="loader" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.6s ease;">
+    <div class="loader-ring" style="width:60px;height:60px;border:4px solid transparent;border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:1rem;"></div>
+    <div style="font-size:0.8rem;letter-spacing:0.2em;color:var(--text);opacity:0.8;">LOADING</div>
+  </div>
+  <style>
+  .category-header { display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);margin-bottom:4px;transition:background 0.2s; }
+  .category-header:hover { background:rgba(255,255,255,0.08); }
+  .category-header h4 { margin:0;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;opacity:0.7;color:var(--accent); }
+  .category-content { overflow:hidden;transition:max-height 0.35s ease;max-height:500px; }
+  .category-content.collapsed { max-height:0; }
+  @media (max-width: 480px) { .rich-btn { font-size:0.6rem;padding:5px 8px;border-radius:10px;} .grid { width:92vw; gap:6px; } .category-header { padding:6px 8px; } }
+  </style>
+  <style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .theme-classic #loader { background:var(--bg); }
+  .theme-cartoon #loader { background:var(--bg); }
+  </style>
+  <div class="sub">Tic Tac Toe By UXplorers</div>
+  <div id="turn" class="turn-display">Player X's turn</div>
+
+  <script>
+  function toggleCategory(id) { const c = document.getElementById(id); c.classList.toggle('collapsed'); }
+  </script>
+
+  <button onclick="openModify()" class="rich-btn" style="margin-bottom:0.5rem;">Modify</button>
+
+  <div id="modifyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:500;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this) closeModify()">
+    <div style="background:var(--surface);border:2px solid var(--accent);border-radius:20px;padding:1.2rem;max-width:92vw;width:380px;color:var(--text);font-family:inherit;box-shadow:0 0 50px rgba(0,240,255,0.25);position:relative;max-height:85vh;overflow-y:auto;">
+      <button onclick="closeModify()" style="position:absolute;top:8px;right:10px;background:transparent;border:none;color:var(--accent);font-size:1.2rem;font-weight:700;cursor:pointer;line-height:1;">×</button>
+      <h3 style="margin-top:0;color:var(--accent);font-size:1rem;letter-spacing:0.1em;text-transform:uppercase;">Customize</h3>
+
+      <div style="margin-bottom:0.6rem;">
+        <h5 style="margin:0 0 6px;font-size:0.7rem;opacity:0.9;">Custom Assets</h5>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+          <div style="text-align:center;">
+            <label style="font-size:0.6rem;display:block;opacity:0.8;">P1 Logo</label>
+            <input type="file" accept="image/*" class="file-btn" onchange="loadLogo(this, 'p1')" style="font-size:0.65rem;" />
+          </div>
+          <div style="text-align:center;">
+            <label style="font-size:0.6rem;display:block;opacity:0.8;">P2 Logo</label>
+            <input type="file" accept="image/*" class="file-btn" onchange="loadLogo(this, 'p2')" style="font-size:0.65rem;" />
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:0.6rem;">
+        <h5 style="margin:0 0 6px;font-size:0.7rem;opacity:0.9;">Background</h5>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;">
+          <div style="text-align:center;">
+            <label style="font-size:0.6rem;display:block;opacity:0.8;">Image</label>
+            <input type="file" accept="image/*" class="file-btn" onchange="loadBg(this)" style="font-size:0.65rem;" />
+          </div>
+          <div style="text-align:center;">
+            <label style="font-size:0.6rem;display:block;opacity:0.8;">Opacity</label>
+            <input type="range" min="0" max="100" value="30" oninput="setOpacity(this.value)" style="width:80px;" />
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:0.4rem;">
+        <h5 style="margin:0 0 6px;font-size:0.7rem;opacity:0.9;">Themes</h5>
+        <div style="display:flex;gap:6px;justify-content:center;">
+          <button onclick="setTheme('neon')" class="rich-btn" style="background:linear-gradient(135deg,rgba(255,0,170,0.15),rgba(0,240,255,0.1));border-color:#ff00aa;color:#fff;">Neon</button>
+          <button onclick="setTheme('classic')" class="rich-btn" style="background:linear-gradient(135deg,rgba(139,111,59,0.15),rgba(200,180,140,0.1));border-color:#8b6f3b;color:#3e2a1d;">Classic</button>
+          <button onclick="setTheme('cartoon')" class="rich-btn" style="background:linear-gradient(135deg,rgba(255,166,210,0.2),rgba(255,255,255,0.15));border-color:#ffa6d2;color:#e84393;">Cartoon</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category: Game Mode -->
+  <section style="margin-bottom:0.3rem;">
+    <div onclick="toggleCategory('catGame')" class="category-header" style="margin-bottom:6px;">
+      <h4 style="font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;opacity:0.7;color:var(--accent);margin:0;">Game Mode ▼</h4>
+    </div>
+    <div id="catGame" class="category-content">
+    <div style="display:flex;gap:6px;justify-content:center;" id="modeSelect">
+    <button onclick="setGameMode('pvp')" class="rich-btn" style="background:linear-gradient(135deg,rgba(0,240,255,0.15),rgba(255,255,255,0.05));border-color:var(--accent);">Two Player</button>
+    <button onclick="setGameMode('ai')" class="rich-btn" style="background:linear-gradient(135deg,rgba(255,0,170,0.15),rgba(0,240,255,0.1));border-color:#ff00aa;">vs AI</button>
+  </div>
+  <div id="aiSelect" style="display:none;flex-direction:row;gap:6px;justify-content:center;margin-bottom:0.3rem;">
+    <button onclick="startAIGame('easy')" class="rich-btn" style="font-size:0.65rem;background:linear-gradient(135deg,rgba(26,136,26,0.2),rgba(26,136,26,0.05));border-color:#1a8;color:#fff;">Easy</button>
+    <button onclick="startAIGame('hard')" class="rich-btn" style="font-size:0.65rem;background:linear-gradient(135deg,rgba(212,160,23,0.2),rgba(212,160,23,0.05));border-color:#d4a017;color:#fff;">Hard</button>
+    <button onclick="startAIGame('super')" class="rich-btn" style="font-size:0.65rem;background:linear-gradient(135deg,rgba(160,0,136,0.2),rgba(160,0,136,0.05));border-color:#a08;color:#fff;">Super Hard</button>
+  </div>
+    </div>
+  </section>
+
+  <!-- Category: Grid Builder -->
+  <section style="margin-bottom:0.5rem;">
+    <div onclick="toggleCategory('gridBuildContent')" class="category-header" style="margin-bottom:6px;">
+      <h4 style="font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;opacity:0.7;color:var(--accent);margin:0;">Grid Builder</h4>
+      <span style="font-size:0.7rem;color:var(--accent);">▼</span>
+    </div>
+    <div id="gridBuildContent" class="category-content collapsed">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin-bottom:0.5rem;">
+      <label style="font-size:0.7rem;letter-spacing:0.05em;">Size:</label>
+      <button onclick="setSize(3,3)" class="rich-btn">3×3</button>
+      <button onclick="setSize(4,4)" class="rich-btn">4×4</button>
+      <input id="rowsIn" type="number" min="2" max="8" value="3" style="width:50px;padding:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-family:inherit;" />
+      <span>×</span>
+      <input id="colsIn" type="number" min="2" max="8" value="3" style="width:50px;padding:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-family:inherit;" />
+      <button onclick="applyCustomSize()" class="rich-btn">Set</button>
+      <button onclick="toggleBuildMode()" id="buildBtn" class="rich-btn">Grid Builder</button>
+    </div>
+    </div>
+  </section>
+
+  <div class="game-card" style="margin-top:1.2rem;">
+    <div style="text-align:center;margin-bottom:0.8rem;">
+      <h2 style="font-size:1.1rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin:0;text-shadow:0 0 15px var(--accent);font-family:'Orbitron',system-ui,sans-serif;">Game Board</h2>
+    </div>
+    <div class="grid-modern" id="grid" style="position:relative;">
+      <svg id="winLine" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible;"></svg>
+    </div>
+    <div id="restartBtnWrap" style="display:none;justify-content:center;margin-top:1rem;"><button onclick="resetGame()" class="modern-btn" style="font-weight:700;letter-spacing:0.1em;background:linear-gradient(135deg,rgba(0,240,255,0.2),rgba(255,0,170,0.15));border-color:var(--accent);">Restart</button></div>
+  </div>
+
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:1rem;flex-wrap:wrap;align-items:center;">
+    <button onclick="startMultiplayer()" class="modern-btn" style="font-size:0.75rem;padding:0.6rem 1.2rem;">Multiplayer</button>
+    <button onclick="joinRoomPrompt()" class="modern-btn" style="font-size:0.75rem;padding:0.6rem 1.2rem;">Join Room</button>
+    <button onclick="toggleSound()" id="sndBtn" class="modern-btn">Sound: On</button>
+  </div>
+  <div id="mpStatus" style="text-align:center;font-size:0.7rem;opacity:0.7;margin-top:0.3rem;min-height:1rem;"></div>
+
+  <!-- Comments Section -->
+  <section style="margin-top:1.5rem;margin-bottom:0.5rem;max-width:600px;width:100%;">
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:1rem;">
+      <h4 style="margin:0 0 0.5rem;font-size:0.85rem;color:var(--accent);letter-spacing:0.08em;">Tournaments</h4>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="createTournament()" class="rich-btn" style="font-size:0.65rem;padding:0.4rem 0.8rem;">Create Tournament (Admin)</button>
+        <button onclick="loadTournaments()" class="rich-btn" style="font-size:0.65rem;padding:0.4rem 0.8rem;">Show Tournaments</button>
+      </div>
+      <div id="tournamentList" style="margin-top:0.5rem;font-size:0.7rem;opacity:0.85;"></div>
+    </div>
+  </section>
+
+  <!-- Leaderboard & Profile -->
+  <section style="margin-top:1rem;margin-bottom:0.5rem;max-width:600px;width:100%;">
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:1rem;">
+      <h4 style="margin:0 0 0.5rem;font-size:0.85rem;color:var(--accent);letter-spacing:0.08em;">Leaderboard</h4>
+      <button onclick="showLeaderboard()" class="rich-btn" style="font-size:0.65rem;padding:0.4rem 0.8rem;">Show Leaderboard</button>
+      <div id="leaderboardList" style="margin-top:0.5rem;font-size:0.7rem;opacity:0.85;"></div>
+      <div id="profileStreak" style="margin-top:0.5rem;font-size:0.75rem;color:var(--accent);"></div>
+    </div>
+  </section>
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:1rem;">
+      <h4 style="margin:0 0 0.6rem;font-size:0.8rem;letter-spacing:0.1em;color:var(--accent);">Comments</h4>
+      <div style="display:flex;gap:6px;margin-bottom:0.8rem;">
+        <input id="commentInput" type="text" placeholder="Write a comment..." style="flex:1;padding:0.4rem 0.8rem;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:0.75rem;" />
+        <button onclick="postComment()" class="rich-btn" style="font-size:0.65rem;padding:0.4rem 1rem;">Post</button>
+      </div>
+      <div id="commentsList" style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.75rem;opacity:0.9;"></div>
+    </div>
+  </section>
+
+  <div id="resultBanner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:linear-gradient(135deg,rgba(0,240,255,0.15),rgba(255,0,170,0.15));backdrop-filter:blur(12px);border:2px solid var(--accent);border-radius:24px;padding:2rem 3rem;text-align:center;z-index:300;pointer-events:none;transition:transform 0.4s ease;box-shadow:0 0 60px rgba(0,240,255,0.4);">
+    <div id="resultText" style="font-size:clamp(2rem,8vw,4rem);font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);text-shadow:0 0 30px var(--accent);"></div>
+    <div id="resultSub" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.9;color:var(--text);"></div>
+  </div>
+  <div id="howModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;" onclick="if(event.target===this) hideHow()">
+    <div style="background:var(--surface);border:2px solid var(--accent);border-radius:16px;padding:1.5rem;max-width:90vw;width:340px;color:var(--text);font-family:inherit;box-shadow:0 0 40px rgba(0,240,255,0.3);position:relative;">
+      <button onclick="hideHow()" style="position:absolute;top:8px;right:10px;background:transparent;border:none;color:var(--accent);font-size:1.2rem;font-weight:700;cursor:pointer;line-height:1;">×</button>
+      <h2 style="margin-top:0;color:var(--accent);font-size:1.1rem;">How to Play</h2>
+      <ul style="padding-left:1.1rem;font-size:0.8rem;line-height:1.6;">
+        <li>Take turns placing X or O</li>
+        <li>Form a line of 3+ matching symbols</li>
+        <li>Custom grids: winning length = max(rows,cols) or any contiguous line</li>
+        <li>Disabled cells (gray) are unplayable</li>
+        <li>Use Grid Builder before match to shape the board</li>
+        <li>AI modes: Easy (random), Hard (heuristic), Super Hard (unbeatable)</li>
+      </ul>
+      <button onclick="hideHow()" class="rich-btn">Got it</button>
+    </div>
+  </div>
+
+  <script>
+  function requireLogin(actionName) {
+  if (!auth.currentUser) {
+    showSmoothAlert('Please log in to use ' + (actionName || 'this action'));
+    return false;
+  }
+  return true;
+}
+function showSmoothAlert(msg) {
+  let el = document.getElementById('smoothAlert');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'smoothAlert';
+    el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%) scale(0.9);background:linear-gradient(135deg,rgba(0,240,255,0.18),rgba(255,0,170,0.18));backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,0.2);border-radius:16px;padding:1rem 1.6rem;color:#e8e8f0;font-family:inherit;font-size:0.85rem;letter-spacing:0.06em;z-index:5000;box-shadow:0 10px 40px rgba(0,240,255,0.25);transition:transform 0.35s ease, opacity 0.35s ease;opacity:0;pointer-events:none;text-align:center;max-width:90vw;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.pointerEvents = 'auto';
+  el.style.transform = 'translateX(-50%) scale(1)';
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.transform = 'translateX(-50%) scale(0.9)'; el.style.opacity = '0'; el.style.pointerEvents = 'none'; }, 3000);
+}
+  const banner = document.getElementById('resultBanner');
+  document.getElementById('resultText').textContent = title;
+  document.getElementById('resultSub').textContent = sub;
+  banner.style.pointerEvents = 'auto';
+  banner.style.transform = 'translate(-50%,-50%) scale(1)';
+  setTimeout(() => { banner.style.pointerEvents = 'none'; banner.style.transform = 'translate(-50%,-50%) scale(0)'; }, 2500);
+}
+  function openModify() { document.getElementById('modifyModal').style.display = 'flex'; }
+function closeModify() { document.getElementById('modifyModal').style.display = 'none'; }
+
+function sanitize(str) {
+  if (typeof str !== 'string') return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+  let soundOn = true;
+  function toggleSound() { soundOn = !soundOn; document.getElementById('sndBtn').textContent = 'Sound: ' + (soundOn ? 'On' : 'Off'); }
+  function playSound(type) { if (!soundOn || !window.AudioContext) return; try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.type = type === 'win' ? 'triangle' : 'square'; osc.frequency.setValueAtTime(type === 'win' ? 880 : 300, ctx.currentTime); g.gain.setValueAtTime(0.1, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2); osc.start(); osc.stop(ctx.currentTime + 0.2); } catch(e){} }
+  function hapticFeedback() { if (navigator.vibrate) navigator.vibrate(30); }
+
+  let onboardingStep = 0;
+  function startOnboarding() { onboardingStep = 1; statusEl.textContent = 'Step 1: Click a cell to place your marker'; highlightOnboardingStep(); }
+  function highlightOnboardingStep() { if (onboardingStep === 1) { turnEl.textContent = 'Step 1/4 — Click any cell to start'; statusEl.textContent = 'Interactive onboarding: click a cell to play'; } else if (onboardingStep === 2) { turnEl.textContent = 'Step 2/4 — Try the Grid Builder button above'; statusEl.textContent = 'Now click Grid Builder to toggle cells'; } else if (onboardingStep === 3) { turnEl.textContent = 'Step 3/4 — Upload a custom logo'; statusEl.textContent = 'Try the P1 Logo upload zone'; } else if (onboardingStep === 4) { turnEl.textContent = 'Step 4/4 — Pick a theme'; statusEl.textContent = 'Click Neon, Classic, or Cartoon buttons'; } }
+
+  // Advance onboarding when user interacts
+  const origRender = renderGrid;
+  renderGrid = function() { origRender(); if (onboardingStep === 1 && board.some(c => c)) { onboardingStep = 2; setTimeout(highlightOnboardingStep, 500); } };
+  function toggleBuildMode() { buildMode = !buildMode; document.getElementById('buildBtn').textContent = buildMode ? 'Done Building' : 'Grid Builder'; statusEl.textContent = buildMode ? 'Click cells to disable/enable them' : 'Build mode off'; renderGrid(); if (buildMode && onboardingStep === 2) { onboardingStep = 3; setTimeout(highlightOnboardingStep, 300); } }
+  </script>
+
+  <button class="rich-btn reset-btn" onclick="resetGame()">New Game</button>
+  <div class="status" id="status">Select game mode to start</div>
+
+<script>
+/* Phase 2: Board Customization & Asymmetrical Grids */
+let rows = 3, cols = 3;
+let buildMode = false;
+let disabled = new Set(); // disabled cell indices
+
+function setSize(r, c) { rows = r; cols = c; disabled.clear(); resetGame(); document.getElementById('rowsIn').value = r; document.getElementById('colsIn').value = c; }
+function applyCustomSize() { rows = Math.max(2, Math.min(8, parseInt(document.getElementById('rowsIn').value) || 3)); cols = Math.max(2, Math.min(8, parseInt(document.getElementById('colsIn').value) || 3)); disabled.clear(); resetGame(); }
+function toggleBuildMode() { buildMode = !buildMode; document.getElementById('buildBtn').textContent = buildMode ? 'Done Building' : 'Grid Builder'; statusEl.textContent = buildMode ? 'Click cells to disable/enable them' : 'Build mode off'; renderGrid(); }
+
+function resetGame() {
+  const size = rows * cols;
+  board = Array(size).fill(null);
+  currentPlayer = 'X';
+  gameOver = false;
+  buildWinPatterns();
+  turnEl.textContent = `Player ${currentPlayer}'s turn`;
+  statusEl.textContent = `Grid: ${rows}×${cols}` + (disabled.size ? ` — ${disabled.size} disabled cells` : '');
+  renderGrid();
+  const rWrap = document.getElementById('restartBtnWrap');
+  if (rWrap) rWrap.style.display = 'none';
+}
+
+let logoP1 = null; let logoP2 = null; let bgImage = null;
+function submitScore(result) {
+  if (!requireLogin('Score')) return;
+  const user = auth.currentUser;
+  if (!user || !db) return;
+  const ref = db.collection ? db.collection('users').doc(user.uid) : firebase.firestore().collection('users').doc(user.uid);
+  const today = new Date().toISOString().split('T')[0];
+  ref.get().then(snap => {
+    const data = snap.exists ? snap.data() : { wins: 0, losses: 0, streak: 0, lastLogin: null };
+    if (result === 'win') data.wins = (data.wins || 0) + 1;
+    if (result === 'draw') { /* draw tracking optional */ }
+    if (data.lastLogin !== today) data.streak = (data.streak || 0) + 1;
+    data.lastLogin = today;
+    ref.set(data, { merge: true });
+  }).catch(e => console.log('Score save error:', e));
+}
+function postComment() { if (!requireLogin('Comment')) return;
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  if (!text || text.length > 500) return;
+  const user = auth.currentUser;
+  const name = user ? (user.displayName || user.email || 'Anonymous') : 'Anonymous';
+  const dbRef = db.collection ? db.collection('comments') : firebase.firestore().collection('comments');
+  dbRef.add({ text, userName: name, userId: user ? user.uid : 'anon', timestamp: new Date().toISOString(), approved: false }).then(() => {
+    input.value = '';
+    loadComments();
+  }).catch(e => console.log('Comment error', e));
+}
+function loadComments() {
+  const dbRef = db.collection ? db.collection('comments') : firebase.firestore().collection('comments');
+  dbRef.where('approved', '==', true).get().then(snap => {
+    const list = document.getElementById('commentsList');
+    list.innerHTML = '';
+    snap.forEach(doc => {
+      const c = doc.data();
+      const div = document.createElement('div');
+      div.style.cssText = 'background:rgba(255,255,255,0.03);padding:0.5rem;border-radius:8px;border-left:2px solid var(--accent);';
+      div.innerHTML = '<strong style="color:var(--accent);font-size:0.7rem;">' + sanitize(c.userName || 'Anonymous') + '</strong><p style="margin:0.2rem 0 0;">' + sanitize(c.text) + '</p>'
+        + '<div style="margin-top:0.3rem;display:flex;gap:6px;align-items:center;">'
+        + '<button onclick="likeComment(\'' + doc.id + '\')" style="font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:var(--text);cursor:pointer;">♥ ' + (c.likes || 0) + '</button>'
+        + '<button onclick="replyComment(\'' + doc.id + '\')" style="font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:6px;background:rgba(0,240,255,0.1);border:1px solid rgba(0,240,255,0.2);color:var(--accent);cursor:pointer;">↳ Reply</button>'
+        + '</div>'
+        + (c.replyText ? '<div style="margin-top:0.3rem;padding:0.4rem;background:rgba(255,0,170,0.06);border-left:2px solid #ff00aa;border-radius:6px;"><strong style="font-size:0.65rem;color:#ff00aa;">' + sanitize(c.replyName || 'Someone') + '</strong><p style="margin:0.1rem 0 0;font-size:0.75rem;">' + sanitize(c.replyText) + '</p></div>' : '');
+      list.appendChild(div);
+    });
+  }).catch(e => console.log('Load comments error', e));
+}
+function startMultiplayer() { if (!requireLogin('Multiplayer')) return;
+  const user = auth.currentUser;
+  const name = user ? (user.displayName || user.email || 'Player') : prompt('Your name?', 'Player');
+  if (!name) return;
+  const roomId = Math.random().toString(36).substring(2, 8);
+  const dbRef = db.collection ? db.collection('rooms') : firebase.firestore().collection('rooms');
+  dbRef.doc(roomId).set({ roomId, player1: name, player2: null, boardState: Array(9).fill(null), currentTurn: 'X', status: 'waiting' }).then(() => {
+    document.getElementById('mpStatus').textContent = 'Room: ' + roomId + ' — share code';
+  }).catch(e => console.log('Room error', e));
+}
+function showLeaderboard() { if (!requireLogin('Leaderboard')) return;
+  firebase.firestore().collection('users').orderBy('wins', 'desc').limit(10).get().then(snap => {
+    const list = document.getElementById('leaderboardList');
+    list.innerHTML = '<table style="width:100%;font-size:0.7rem;border-collapse:collapse;opacity:0.9;"><tr><th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);">Name</th><th>Wins</th><th>Streak</th></tr>' + snap.docs.map((d, i) => {
+      const data = d.data();
+      return '<tr><td style="padding:4px;border-bottom:1px solid rgba(255,255,255,0.05);">' + (i + 1) + '. ' + sanitize(data.name || d.id.substring(0,6)) + '</td><td style="text-align:center;padding:4px;">' + (data.wins || 0) + '</td><td style="text-align:center;padding:4px;">' + (data.streak || 0) + '</td></tr>';
+    }).join('') + '</table>';
+  }).catch(e => console.log('Leaderboard error', e));
+}
+function likeComment(id) {
+  if (!requireLogin('Like')) return;
+  const ref = db.collection ? db.collection('comments').doc(id) : firebase.firestore().collection('comments').doc(id);
+  ref.get().then(snap => {
+    const d = snap.data() || {};
+    const newLikes = (d.likes || 0) + 1;
+    ref.update({ likes: newLikes }).catch(() => ref.set({ ...d, likes: newLikes }, { merge: true }));
+  }).catch(() => {});
+  setTimeout(loadComments, 600);
+}
+function replyComment(id) {
+  if (!requireLogin('Reply')) return;
+  const existing = document.getElementById('reply-input-' + id);
+  if (existing) { showSmoothAlert('Only 1 reply allowed per comment'); return; }
+  const text = prompt('Your reply (1 reply only):');
+  if (!text || !text.trim()) return;
+  const user = auth.currentUser;
+  const name = user ? (user.displayName || user.email || 'Anonymous') : 'Anonymous';
+  const ref = db.collection ? db.collection('comments').doc(id) : firebase.firestore().collection('comments').doc(id);
+  ref.get().then(snap => {
+    const data = snap.data() || {};
+    if (data.replyText) { showSmoothAlert('Only 1 reply allowed per comment'); return; }
+    ref.update({ replyText: text.trim(), replyName: name, replyTime: new Date().toISOString() }).then(() => loadComments());
+  }).catch(() => showSmoothAlert('Reply failed'));
+}
+function createTournament() { if (!requireLogin('Tournament')) return;
+  const user = auth.currentUser;
+  if (!user) { alert('Login required'); return; }
+  const name = prompt('Tournament name?', 'Weekly Cup');
+  if (!name) return;
+  const dbRef = db.collection ? db.collection('tournaments') : firebase.firestore().collection('tournaments');
+  const ref = dbRef.doc ? dbRef.doc() : firebase.firestore().collection('tournaments').doc(); // generate id
+  // Use Firestore add for new doc to get auto id
+  firebase.firestore().collection('tournaments').add({ name, bracketSize: 4, status: 'open', players: [], winner: null, round: 1, createdAt: new Date().toISOString() }).then(snap => {
+    document.getElementById('tournamentList').textContent = 'Created tournament: ' + snap.id;
+  }).catch(e => console.log('Tournament error', e));
+}
+function loadTournaments() {
+  firebase.firestore().collection('tournaments').get().then(snap => {
+    const list = document.getElementById('tournamentList');
+    list.innerHTML = snap.docs.map(d => {
+      const t = d.data();
+      return '<div style="padding:0.4rem;background:#12132a;border-radius:8px;margin-top:0.3rem;border-left:2px solid var(--accent);"><strong>' + sanitize(t.name || 'Tournament') + '</strong> <span style="opacity:0.7;">(' + sanitize(t.status || 'open') + ')</span></div>';
+    }).join('') || '<span style="opacity:0.5;">No tournaments yet</span>';
+  }).catch(e => console.log('Load tournaments error', e));
+}
+function joinRoomPrompt() { if (!requireLogin('Join Room')) return;
+  const code = prompt('Enter room code:');
+  if (!code) return;
+  const user = auth.currentUser;
+  const name = user ? (user.displayName || user.email || 'Player') : prompt('Your name?', 'Player');
+  const dbRef = db.collection ? db.collection('rooms') : firebase.firestore().collection('rooms');
+  dbRef.doc(code).get().then(snap => {
+    if (!snap.exists) { document.getElementById('mpStatus').textContent = 'Room not found'; return; }
+    dbRef.doc(code).update({ player2: name, status: 'playing' }).then(() => {
+      document.getElementById('mpStatus').textContent = 'Joined room ' + code;
+    });
+  }).catch(e => console.log('Join error', e));
+}
+function loadLogo(input, player) { if (!input.files || !input.files[0]) return; const r = new FileReader(); r.onload = e => { if (player === 'p1') logoP1 = e.target.result; else logoP2 = e.target.result; renderGrid(); }; r.readAsDataURL(input.files[0]); }
+function loadBg(input) { if (!input.files || !input.files[0]) return; const r = new FileReader(); r.onload = e => { bgImage = e.target.result; document.body.style.backgroundImage = `url(${bgImage})`; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center'; setOpacity(30); }; r.readAsDataURL(input.files[0]); }
+function setOpacity(val) { const o = val / 100; document.body.style.background = bgImage ? `linear-gradient(rgba(11,12,21,${1-o}), rgba(11,12,21,${1-o})), url(${bgImage})` : 'var(--bg)'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center'; }
+
+const winPatternsDynamic = []; // rebuilt per grid
+const gridEl = document.getElementById('grid');
+const turnEl = document.getElementById('turn');
+const statusEl = document.getElementById('status');
+
+let board = Array(9).fill(null);
+let currentPlayer = 'X';
+let gameOver = false;
+
+const winPatterns = [
+  [0,1,2],[3,4,5],[6,7,8], // rows
+  [0,3,6],[1,4,7],[2,5,8], // cols
+  [0,4,8],[2,4,6]          // diags
+];
+
+function buildWinPatterns() {
+  winPatternsDynamic.length = 0;
+  // Rows
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols - 2; c++) {
+      // Horizontal of length 3+ (simplified: check contiguous 3)
+      for (let len = 3; len <= Math.min(Math.max(rows, cols), 5); len++) {
+        if (c + len > cols) break;
+        const pat = [];
+        for (let k = 0; k < len; k++) pat.push(r * cols + (c + k));
+        if (pat.every(i => !disabled.has(i))) winPatternsDynamic.push(pat);
+      }
+    }
+  }
+  // Cols
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows - 2; r++) {
+      for (let len = 3; len <= Math.min(Math.max(rows, cols), 5); len++) {
+        if (r + len > rows) break;
+        const pat = [];
+        for (let k = 0; k < len; k++) pat.push((r + k) * cols + c);
+        if (pat.every(i => !disabled.has(i))) winPatternsDynamic.push(pat);
+      }
+    }
+  }
+  // Diagonals (down-right)
+  for (let r = 0; r < rows - 2; r++) {
+    for (let c = 0; c < cols - 2; c++) {
+      for (let len = 3; len <= Math.min(Math.max(rows, cols), 5); len++) {
+        if (r + len > rows || c + len > cols) break;
+        const pat = [];
+        for (let k = 0; k < len; k++) pat.push((r + k) * cols + (c + k));
+        if (pat.every(i => !disabled.has(i))) winPatternsDynamic.push(pat);
+      }
+    }
+  }
+  // Diagonals (up-right)
+  for (let r = 2; r < rows; r++) {
+    for (let c = 0; c < cols - 2; c++) {
+      for (let len = 3; len <= Math.min(Math.max(rows, cols), 5); len++) {
+        if (r - len + 1 < 0 || c + len > cols) break;
+        const pat = [];
+        for (let k = 0; k < len; k++) pat.push((r - k) * cols + (c + k));
+        if (pat.every(i => !disabled.has(i))) winPatternsDynamic.push(pat);
+      }
+    }
+  }
+}
+
+function renderGrid() {
+  gridEl.innerHTML = '';
+  // Dynamic CSS grid
+  gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  const size = rows * cols;
+  board = board.length === size ? board : Array(size).fill(null);
+  for (let i = 0; i < size; i++) {
+    const cell = document.createElement('button');
+    const isDisabled = disabled.has(i);
+    cell.className = 'cell-modern' + (isDisabled ? ' disabled' : '') + (board[i] ? ' taken' : '');
+    cell.innerHTML = '';
+    if (board[i]) {
+      if (logoP1 || logoP2) {
+        const img = document.createElement('img');
+        img.src = board[i] === 'X' ? (logoP1 || '') : (logoP2 || '');
+        img.style.width = '70%'; img.style.height = '70%'; img.style.objectFit = 'contain'; img.style.borderRadius = '8px';
+        cell.appendChild(img);
+      } else {
+        cell.innerHTML = `<span>${board[i]}</span>`;
+      }
+    }
+    cell.style.opacity = isDisabled ? '0.25' : '1';
+    cell.style.cursor = isDisabled ? 'not-allowed' : (buildMode ? 'crosshair' : 'pointer');
+    cell.setAttribute('aria-label', `Cell ${i + 1}${isDisabled ? ' (disabled)' : ''}`);
+    if (isDisabled) {
+      cell.addEventListener('click', () => { if (buildMode) { disabled.delete(i); renderGrid(); } });
+    } else {
+      cell.addEventListener('click', () => {
+        if (buildMode) { disabled.add(i); renderGrid(); }
+        else makeMove(i);
+      });
+    }
+    gridEl.appendChild(cell);
+  }
+}
+
+function makeMove(i) { if (gameOver || board[i]) return; board[i] = currentPlayer; playSound('click'); hapticFeedback(); renderGrid();
+  if (checkWin()) {
+    turnEl.textContent = `Player ${currentPlayer} wins!`; statusEl.textContent = `Winning line highlighted.`; gameOver = true; playSound('win'); highlightWin(); setTimeout(() => showResult('WIN!', `Player ${currentPlayer} wins`), 300); document.getElementById('restartBtnWrap').style.display = 'flex'; submitScore('win');
+  } else if (isBoardFull()) {
+    turnEl.textContent = "Draw!"; statusEl.textContent = "No moves left — it's a draw."; gameOver = true; playSound('draw'); showResult('DRAW!', 'No winner this time'); document.getElementById('restartBtnWrap').style.display = 'flex'; submitScore('draw');
+  } else {
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    turnEl.textContent = `Player ${currentPlayer}'s turn`;
+  }
+}
+
+function isBoardFull() { return board.every(c => c); }
+function checkWin() {
+  buildWinPatterns();
+  return winPatternsDynamic.some(p => p.every(i => board[i] === currentPlayer));
+}
+
+function highlightWin() {
+  buildWinPatterns();
+  const winning = winPatternsDynamic.find(p => p.every(i => board[i] === currentPlayer));
+  if (!winning) return;
+  document.querySelectorAll('.cell').forEach((cell, i) => {
+    if (winning.includes(i)) cell.classList.add('win');
+  });
+  // Draw line through winning cells
+  const cells = document.querySelectorAll('.cell');
+  const first = cells[winning[0]].getBoundingClientRect();
+  const last = cells[winning[winning.length - 1]].getBoundingClientRect();
+  const gridRect = document.getElementById('grid').getBoundingClientRect();
+  const svg = document.getElementById('winLine');
+  svg.innerHTML = '';
+  const x1 = first.left + first.width / 2 - gridRect.left;
+  const y1 = first.top + first.height / 2 - gridRect.top;
+  const x2 = last.left + last.width / 2 - gridRect.left;
+  const y2 = last.top + last.height / 2 - gridRect.top;
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+  line.setAttribute('stroke', 'var(--accent)'); line.setAttribute('stroke-width', '8');
+  line.setAttribute('stroke-linecap', 'round');
+  line.setAttribute('filter', 'drop-shadow(0 0 10px var(--accent))');
+  svg.appendChild(line);
+  spawnConfetti();
+}
+
+function resetGame() {
+  const size = rows * cols;
+  board = Array(size).fill(null);
+  currentPlayer = 'X';
+  gameOver = false;
+  buildWinPatterns();
+  turnEl.textContent = `Player ${currentPlayer}'s turn`;
+  statusEl.textContent = `Grid: ${rows}×${cols}` + (disabled.size ? ` — ${disabled.size} disabled cells` : '');
+  renderGrid();
+  const rWrap = document.getElementById('restartBtnWrap');
+  if (rWrap) rWrap.style.display = 'none';
+}
+
+function setTheme(name) { document.body.className = 'theme-' + name; statusEl.textContent = 'Theme: ' + name; }
+function setGameMode(mode) { if (mode === 'ai') { document.getElementById('aiSelect').style.display = 'flex'; aiMode = null; statusEl.textContent = 'vs AI selected — pick difficulty'; } else { document.getElementById('aiSelect').style.display = 'none'; aiMode = null; currentPlayer = 'X'; resetGame(); statusEl.textContent = 'Two Player mode — Player X starts'; } }
+function spawnConfetti() { for(let i=0;i<60;i++){ const c=document.createElement('div'); c.style.position='fixed'; c.style.width='8px'; c.style.height='8px'; c.style.borderRadius='50%'; c.style.background=['#00f0ff','#ff00aa','#ffd600','#e84393','#8b6f3b'][i%5]; c.style.left=Math.random()*100+'vw'; c.style.top='-10px'; c.style.zIndex=9999; c.style.animation=`fall ${1.5+Math.random()*1.5}s linear forwards`; document.body.appendChild(c); setTimeout(()=>c.remove(),3500); } }
+const confettiStyle=document.createElement('style'); confettiStyle.innerHTML='@keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }'; document.head.appendChild(confettiStyle);
+
+let aiMode = null; let aiPlayer = 'O';
+function startAIGame(mode) { if (mode === 'super' && (rows * cols > 9)) { mode = 'hard'; statusEl.textContent = 'Super Hard disabled on large grids — switched to Hard'; } aiMode = mode; aiPlayer = 'O'; currentPlayer = 'X'; resetGame(); statusEl.textContent = 'AI Mode: ' + mode + ' — You are X'; }
+
+function getValidMoves() { const moves = []; for (let i = 0; i < board.length; i++) if (!board[i] && !disabled.has(i)) moves.push(i); return moves; }
+
+function aiMove() {
+  if (!aiMode || currentPlayer !== aiPlayer) return;
+  const moves = getValidMoves();
+  if (!moves.length) return;
+  let pick;
+  if (aiMode === 'easy') { pick = moves[Math.floor(Math.random() * moves.length)]; }
+  else if (aiMode === 'hard') {
+    // Heuristic: block opponent win, else random good
+    for (let m of moves) { board[m] = 'X'; buildWinPatterns(); const blocked = winPatternsDynamic.some(p => p.every(i => board[i] === 'X') && p.includes(m)); board[m] = null; if (blocked) { pick = m; break; } }
+    if (pick === undefined) pick = moves[Math.floor(Math.random() * moves.length)];
+  }
+  else { pick = minimax(board, 0, true).index; }
+  setTimeout(() => { makeMove(pick); }, 400);
+}
+
+function minimax(b, depth, isMax) {
+  if (depth > 4) return { score: 0, index: (b.map((v,i)=>v?null:i).filter(x=>x!==null)[0]||0) };
+  buildWinPatterns();
+  if (winPatternsDynamic.some(p => p.every(i => b[i] === 'O'))) return { score: 10 - depth };
+  if (winPatternsDynamic.some(p => p.every(i => b[i] === 'X'))) return { score: depth - 10 };
+  const valid = b.map((v, i) => (!v && !disabled.has(i)) ? i : null).filter(x => x !== null);
+  if (valid.length === 0) return { score: 0 };
+  let best = isMax ? { score: -Infinity, index: valid[0] } : { score: Infinity, index: valid[0] };
+  for (let idx of valid) {
+    b[idx] = isMax ? 'O' : 'X';
+    const res = minimax(b, depth + 1, !isMax);
+    b[idx] = null;
+    if (isMax && res.score > best.score) best = { score: res.score, index: idx };
+    if (!isMax && res.score < best.score) best = { score: res.score, index: idx };
+  }
+  return best;
+}
+
+// Hook AI turn into move cycle
+const originalMakeMove = makeMove;
+makeMove = function(i) {
+  originalMakeMove(i);
+  if (aiMode && !gameOver && currentPlayer === aiPlayer) aiMove();
+};
+</script>
+  <script>resetGame();</script>
+  <script>setInterval(() => { const names = ['Alex','Jordan','Sam','Taylor','Casey']; const name = names[Math.floor(Math.random()*names.length)]; const el = document.getElementById('join-toast'); if (el) { el.textContent = name + ' joined'; setTimeout(() => el.textContent = '', 3000); } }, 120000);</script>
+  <script>window.addEventListener('load', () => { setTimeout(() => { const loader = document.getElementById('loader'); if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 600); } }, 900); });</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users: only the user can read/write their own doc
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Rooms: participants and creator can read; participants can write
+    match /rooms/{roomId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (resource == null || (resource.data.player1 == request.auth.token.email || resource.data.player2 == request.auth.token.email || resource.data.player1 == request.auth.uid || resource.data.player2 == request.auth.uid));
+    }
+    // Comments: public can read approved; any auth user can create
+    match /comments/{commentId} {
+      allow read: if resource.data.approved == true || request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+    // Tournaments: public read; admin can write (restrict to specific admin UID for simplicity)
+    match /tournaments/{tournamentId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    // Admin authorization doc
+    match /admins/{uid} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+  }
+}
