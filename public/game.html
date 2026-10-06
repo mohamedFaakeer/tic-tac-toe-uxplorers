@@ -29,6 +29,14 @@ const db = firebase.firestore();
 html, body { margin: 0; padding: 0; height: 100vh; background: var(--bg); color: var(--text); overflow: auto; font-family: 'Orbitron', system-ui, sans-serif; }
 body { display: flex; flex-direction: column; align-items: center; padding: 1rem 1rem 2rem; min-height: 100vh; }
 
+/* Modern thin scrollbar — glassmorphism style */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(0,240,255,0.35), rgba(255,0,170,0.35)); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, rgba(0,240,255,0.6), rgba(255,0,170,0.6)); }
+*:hover::-webkit-scrollbar-thumb { opacity: 1; }
+html { scrollbar-width: thin; scrollbar-color: rgba(0,240,255,0.35) transparent; }
+
 h1 { font-size: clamp(1.4rem, 5vw, 2.2rem); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.2em; text-align: center; }
 h1 span { color: var(--accent); text-shadow: 0 0 20px var(--accent); }
 .sub { font-size: 0.75rem; opacity: 0.7; letter-spacing: 0.15em; margin-bottom: 1.5rem; }
