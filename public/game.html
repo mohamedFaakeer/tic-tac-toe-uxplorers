@@ -74,10 +74,12 @@ h1 span { color: var(--accent); text-shadow: 0 0 20px var(--accent); }
 .theme-cartoon .reset-btn { border-color: var(--accent); color: var(--text); }
 .reset-btn:hover { background: var(--accent); color: var(--bg); box-shadow: 0 0 25px var(--accent); }
 
-.file-btn { background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 6px 10px; font-family: inherit; font-size: 0.7rem; color: var(--text); cursor: pointer; backdrop-filter: blur(8px); transition: all 0.25s ease; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
-.file-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 18px rgba(0,240,255,0.25); border-color: var(--accent); }
-.theme-classic .file-btn { background: linear-gradient(135deg, rgba(139,111,59,0.08), rgba(200,180,140,0.05)); border-color: rgba(139,111,59,0.35); color: var(--text); }
-.theme-cartoon .file-btn { background: linear-gradient(135deg, rgba(255,166,210,0.15), rgba(255,255,255,0.15)); border-color: rgba(255,166,210,0.4); color: var(--text); }
+.file-btn { background: linear-gradient(135deg, rgba(0,240,255,0.12), rgba(255,0,170,0.08)); border: 1.5px solid rgba(255,255,255,0.18); border-radius: 50px; padding: 8px 16px; font-family: inherit; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); cursor: pointer; backdrop-filter: blur(10px); transition: all 0.3s ease; box-shadow: 0 2px 12px rgba(0,240,255,0.08); }
+.file-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 24px rgba(0,240,255,0.35), 0 0 0 2px rgba(255,0,170,0.15); border-color: var(--accent); color: var(--accent); background: linear-gradient(135deg, rgba(0,240,255,0.2), rgba(255,0,170,0.15)); }
+.theme-classic .file-btn { background: linear-gradient(135deg, rgba(139,111,59,0.1), rgba(200,180,140,0.06)); border-color: rgba(139,111,59,0.35); color: var(--text); }
+.theme-classic .file-btn:hover { box-shadow: 0 6px 24px rgba(139,111,59,0.35); border-color: var(--accent); color: var(--accent); background: linear-gradient(135deg, rgba(139,111,59,0.2), rgba(200,180,140,0.1)); }
+.theme-cartoon .file-btn { background: linear-gradient(135deg, rgba(255,166,210,0.2), rgba(255,255,255,0.1)); border-color: rgba(255,166,210,0.45); color: var(--text); }
+.theme-cartoon .file-btn:hover { box-shadow: 0 6px 24px rgba(255,166,210,0.45); border-color: var(--accent); color: var(--text); background: linear-gradient(135deg, rgba(255,166,210,0.3), rgba(255,255,255,0.2)); }
 .rich-btn { background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03)); border: 1.5px solid var(--accent); border-radius: 14px; padding: 10px 18px; font-family: inherit; font-size: 0.8rem; color: var(--text); cursor: pointer; backdrop-filter: blur(10px); transition: all 0.25s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08); letter-spacing: 0.05em; text-transform: uppercase; }
 .rich-btn:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 30px var(--accent), inset 0 1px 0 rgba(255,255,255,0.15); border-color: var(--accent); color: var(--accent); }
 .theme-classic .rich-btn { background: linear-gradient(135deg, rgba(139,111,59,0.1), rgba(200,180,140,0.05)); border-color: var(--accent); color: var(--text); }
@@ -199,7 +201,7 @@ h1 span { color: var(--accent); text-shadow: 0 0 20px var(--accent); }
   <div class="grid" id="grid" style="position:relative;">
     <svg id="winLine" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible;"></svg>
   </div>
-  <div id="restartBtnWrap" style="display:none;justify-content:center;margin-top:0.8rem;"><button onclick="resetGame()" class="rich-btn" style="font-size:1rem;padding:0.7rem 2rem;background:linear-gradient(135deg,rgba(0,240,255,0.2),rgba(255,0,170,0.15));border-color:var(--accent);color:var(--text);">Restart</button></div>
+  <div id="restartBtnWrap" style="display:none;justify-content:center;margin-top:0.8rem;"><button onclick="resetGame()" class="rich-btn" style="font-size:1rem;padding:0.7rem 2.5rem;background:linear-gradient(135deg,rgba(0,240,255,0.25),rgba(255,0,170,0.2));border-color:var(--accent);color:var(--text);box-shadow:0 0 20px rgba(0,240,255,0.3);">Retry / Restart</button></div>
 
   <div style="display:flex;gap:8px;justify-content:center;margin-top:0.3rem;flex-wrap:wrap;">
     <button onclick="startMultiplayer()" class="rich-btn" style="font-size:0.7rem;">Multiplayer</button>
@@ -512,7 +514,10 @@ function renderGrid() {
 
 function makeMove(i) { if (gameOver || board[i]) return; board[i] = currentPlayer; playSound('click'); hapticFeedback(); renderGrid();
   if (checkWin()) {
-    turnEl.textContent = `Player ${currentPlayer} wins!`; statusEl.textContent = `Winning line highlighted.`; gameOver = true; playSound('win'); highlightWin(); setTimeout(() => showResult('WIN!', `Player ${currentPlayer} wins`), 300); document.getElementById('restartBtnWrap').style.display = 'flex'; submitScore('win');
+    const userLost = (aiMode && currentPlayer === aiPlayer);
+    const resultTitle = userLost ? 'YOU LOST!' : 'WIN!';
+    const resultSub = userLost ? `Player ${currentPlayer} won — try again!` : `Player ${currentPlayer} wins`;
+    turnEl.textContent = userLost ? 'You lost!' : `Player ${currentPlayer} wins!`; statusEl.textContent = userLost ? 'Better luck next time!' : 'Winning line highlighted.'; gameOver = true; playSound(userLost ? 'draw' : 'win'); highlightWin(); setTimeout(() => showResult(resultTitle, resultSub), 300); document.getElementById('restartBtnWrap').style.display = 'flex'; submitScore(userLost ? 'loss' : 'win');
   } else if (isBoardFull()) {
     turnEl.textContent = "Draw!"; statusEl.textContent = "No moves left — it's a draw."; gameOver = true; playSound('draw'); showResult('DRAW!', 'No winner this time'); document.getElementById('restartBtnWrap').style.display = 'flex'; submitScore('draw');
   } else {
