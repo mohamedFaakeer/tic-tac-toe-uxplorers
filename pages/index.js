@@ -16,7 +16,7 @@ export default function Home() {
         </p>
         <p id="join-toast" style={{ textAlign: 'center', fontSize: '0.7rem', color: '#ff00aa', minHeight: '1.2rem', letterSpacing: '0.05em' }}></p>
         <div id="game-root" style={{ marginTop: '2rem' }}>
-          <iframe src="/index.html" style={{ width: '100%', height: '80vh', border: 'none', borderRadius: '16px' }} />
+          <iframe src="/game.html" style={{ width: '100%', height: '80vh', border: 'none', borderRadius: '16px' }} />
         </div>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '1rem', flexWrap: 'wrap' }}>
           <a href="/login" style={{ padding: '0.7rem 2rem', borderRadius: '50px', background: '#fff', color: '#0b0c15', textDecoration: 'none', fontWeight: 700, letterSpacing: '0.1em' }}>Login / Sign Up</a>
