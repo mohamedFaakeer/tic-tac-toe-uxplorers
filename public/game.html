@@ -7,7 +7,17 @@
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAn6xc6624rJvsCqqu9KGgaNm6C2s6o0qw",
+  authDomain: "tic-tac-toe-uxplorers.firebaseapp.com",
+  projectId: "tic-tac-toe-uxplorers",
+  storageBucket: "tic-tac-toe-uxplorers.firebasestorage.app",
+  messagingSenderId: "726677813927",
+  appId: "1:726677813927:web:2390b6d1b63ffc81bc3982",
+  measurementId: "G-MQ5PJHY0GJ"
+};
+</script>
 <script>
 const firebaseApp = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -283,8 +293,6 @@ function closeModify() { document.getElementById('modifyModal').style.display = 
   function highlightOnboardingStep() { if (onboardingStep === 1) { turnEl.textContent = 'Step 1/4 — Click any cell to start'; statusEl.textContent = 'Interactive onboarding: click a cell to play'; } else if (onboardingStep === 2) { turnEl.textContent = 'Step 2/4 — Try the Grid Builder button above'; statusEl.textContent = 'Now click Grid Builder to toggle cells'; } else if (onboardingStep === 3) { turnEl.textContent = 'Step 3/4 — Upload a custom logo'; statusEl.textContent = 'Try the P1 Logo upload zone'; } else if (onboardingStep === 4) { turnEl.textContent = 'Step 4/4 — Pick a theme'; statusEl.textContent = 'Click Neon, Classic, or Cartoon buttons'; } }
 
   // Advance onboarding when user interacts
-  const origRender = renderGrid;
-  renderGrid = function() { origRender(); if (onboardingStep === 1 && board.some(c => c)) { onboardingStep = 2; setTimeout(highlightOnboardingStep, 500); } };
   function toggleBuildMode() { buildMode = !buildMode; document.getElementById('buildBtn').textContent = buildMode ? 'Done Building' : 'Grid Builder'; statusEl.textContent = buildMode ? 'Click cells to disable/enable them' : 'Build mode off'; renderGrid(); if (buildMode && onboardingStep === 2) { onboardingStep = 3; setTimeout(highlightOnboardingStep, 300); } }
   </script>
 
@@ -366,13 +374,18 @@ function startMultiplayer() {
   }).catch(e => console.log('Room error', e));
 }
 function showLeaderboard() {
+  const list = document.getElementById('leaderboardList');
+  list.innerHTML = '<div style="text-align:center;padding:1rem;font-size:0.8rem;opacity:0.6;letter-spacing:0.05em;">Loading leaderboard...</div>';
   firebase.firestore().collection('users').orderBy('wins', 'desc').limit(10).get().then(snap => {
-    const list = document.getElementById('leaderboardList');
+    if (snap.empty) {
+      list.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--accent);font-size:0.8rem;opacity:0.9;letter-spacing:0.05em;">🏆 No champions yet — play a game to claim the top spot!</div>';
+      return;
+    }
     list.innerHTML = '<table style="width:100%;font-size:0.7rem;border-collapse:collapse;opacity:0.9;"><tr><th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);">Name</th><th>Wins</th><th>Streak</th></tr>' + snap.docs.map((d, i) => {
       const data = d.data();
       return '<tr><td style="padding:4px;border-bottom:1px solid rgba(255,255,255,0.05);">' + (i + 1) + '. ' + (data.name || d.id.substring(0,6)) + '</td><td style="text-align:center;padding:4px;">' + (data.wins || 0) + '</td><td style="text-align:center;padding:4px;">' + (data.streak || 0) + '</td></tr>';
     }).join('') + '</table>';
-  }).catch(e => console.log('Leaderboard error', e));
+  }).catch(e => { console.log('Leaderboard error', e); list.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--accent2);font-size:0.75rem;">Could not load leaderboard. Try refreshing.</div>'; });
 }
 function createTournament() {
   const user = auth.currentUser;
@@ -511,6 +524,10 @@ function renderGrid() {
     gridEl.appendChild(cell);
   }
 }
+
+  // Advance onboarding when user interacts
+  const origRender = renderGrid;
+  renderGrid = function() { origRender(); if (onboardingStep === 1 && board.some(c => c)) { onboardingStep = 2; setTimeout(highlightOnboardingStep, 500); } };
 
 function makeMove(i) { if (gameOver || board[i]) return; board[i] = currentPlayer; playSound('click'); hapticFeedback(); renderGrid();
   if (checkWin()) {

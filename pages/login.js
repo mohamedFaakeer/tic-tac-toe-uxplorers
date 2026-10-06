@@ -39,9 +39,9 @@ export default function Login() {
     } catch (e) { setMsg(sanitizeMsg(e.message) || 'Guest login failed'); }
   };
 
-  const google = async () => await signInWithPopup(auth, new GoogleAuthProvider());
-  const github = async () => await signInWithPopup(auth, new GithubAuthProvider());
-  const facebook = async () => await signInWithPopup(auth, new FacebookAuthProvider());
+  const google = async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); setMsg('Welcome! 🎮'); } catch (e) { setMsg('Google sign-in failed — check Firebase Auth settings and domain authorization.'); } };
+  const github = async () => { try { await signInWithPopup(auth, new GithubAuthProvider()); setMsg('Welcome! 🎮'); } catch (e) { setMsg('GitHub sign-in failed — verify provider is enabled in Firebase Console.'); } };
+  const facebook = async () => { try { await signInWithPopup(auth, new FacebookAuthProvider()); setMsg('Welcome! 🎮'); } catch (e) { setMsg('Facebook sign-in failed — check provider settings and domain config.'); } };
 
   return (
     <main style={{
